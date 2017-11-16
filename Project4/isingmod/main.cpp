@@ -18,47 +18,56 @@ void InitializeLattice(int, double**, double&, double&);
 // The metropolis algorithm including the loop over Monte Carlo cycles
 void MetropolisSampling(int, int, double, double*);
 // prints to file the results of the calculations
-void WriteResultstoFile(int, int, double, double*);
+void WriteResultstoFile(int, int, double, double*,int);
 
 // Main program begins here
 
-int main(int argc, char* argv[])
+int main()
+        //int argc, char* argv[])
 {
-  string filename = "Ising2x2";
-  int NSpins, MCcycles;
-  double InitialTemp, FinalTemp, TempStep;
-  if (argc <= 5) {
-    cout << "Bad Usage: " << argv[0] <<
-      " read output file, Number of spins, MC cycles, initial and final temperature and tempurate step" << endl;
-    exit(1);
-  }
-  if (argc > 1) {
-    //filename=argv[1];
-    NSpins = atoi(argv[2]);
-    //MCcycles = atoi(argv[3]);
-    InitialTemp = atof(argv[4]);
-    FinalTemp = atof(argv[5]);
-    TempStep = atof(argv[6]);
-    InitialTemp = 1.0;
-  }
+  string filename = "IsingRand";
+  int NSpins=20;
+  int MCcycles=1e7;
+  double InitialTemp=1.0;   //kT/J
+  double FinalTemp=1.1;
+  double TempStep=0.1;
+
+//  if (argc <= 5) {
+//    cout << "Bad Usage: " << argv[0] <<
+//      " read output file, Number of spins, MC cycles, initial and final temperature and tempurate step" << endl;
+//    exit(1);
+//  }
+//  if (argc > 1) {
+//    //filename=argv[1];
+//      //MCcycles = atoi(argv[3]);
+//      //InitialTemp = atof(argv[4]);
+//      //FinalTemp = atof(argv[5]);
+//      //TempStep = atof(argv[6]);
+//    }  //NSpins = atoi(argv[2]);
+
   // Declare new file name and add lattice size to file name
   //cout<<"MCcycles:" <<MCcycles <<"\n";
   string fileout = filename;
   string argument = to_string(NSpins);
   fileout.append(argument);
+  fileout.append(".txt");
+
   ofile.open(fileout);
 
-  for(MCcycles=1000; MCcycles<=1e7; MCcycles+=100){
+//  for(temperature=InitialTemp; temperature<FinalTemp; temperature+=TempStep){
+//  }
     // Start Monte Carlo sampling by looping over the selected Temperatures
     //for (double Temperature = InitialTemp; Temperature <= FinalTemp; Temperature+=TempStep){
-        double Temperature = InitialTemp;
-        double* ExpectationValues = new double [5];
+
+  double Temperature = InitialTemp;
+  double* ExpectationValues = new double [5];
         // Start Monte Carlo computation and get expectation values
-        MetropolisSampling(NSpins, MCcycles, Temperature, ExpectationValues);
-        WriteResultstoFile(NSpins, MCcycles, Temperature, ExpectationValues);
-        delete [] ExpectationValues;
+  MetropolisSampling(NSpins, MCcycles, Temperature, ExpectationValues);
+  //WriteResultstoFile(NSpins, MCcycles, Temperature, ExpectationValues);
+  delete [] ExpectationValues;
     //}
-  }
+  //}
+
   ofile.close();  // close output file
   return 0;
 }
@@ -91,21 +100,23 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
 
   // Start Monte Carlo cycles
   for (int cycles = 1; cycles <= MCcycles; cycles++){
+      int AcceptedCycles;
     // The sweep over the lattice, looping over all spin sites
     for(int x =0; x < NSpins; x++) {
       for (int y= 0; y < NSpins; y++){
-    int ix = (int) (RandomNumberGenerator(gen)*(double)NSpins);
-    int iy = (int) (RandomNumberGenerator(gen)*(double)NSpins);
-    int deltaE =  2*SpinMatrix[ix][iy]*
-      (SpinMatrix[ix][PeriodicBoundary(iy,NSpins,-1)]+
-       SpinMatrix[PeriodicBoundary(ix,NSpins,-1)][iy] +
-       SpinMatrix[ix][PeriodicBoundary(iy,NSpins,1)] +
-       SpinMatrix[PeriodicBoundary(ix,NSpins,1)][iy]);
-    if ( RandomNumberGenerator(gen) <= EnergyDifference[(deltaE+8)/4] ) {
-      SpinMatrix[ix][iy] *= -1.0;  // flip one spin and accept new spin config
-          MagneticMoment += (double) 2*SpinMatrix[ix][iy];
-      Energy += (double) deltaE;
-    }
+        int ix = (int) (RandomNumberGenerator(gen)*(double)NSpins);
+        int iy = (int) (RandomNumberGenerator(gen)*(double)NSpins);
+        int deltaE =  2*SpinMatrix[ix][iy]*
+        (SpinMatrix[ix][PeriodicBoundary(iy,NSpins,-1)]+
+        SpinMatrix[PeriodicBoundary(ix,NSpins,-1)][iy] +
+        SpinMatrix[ix][PeriodicBoundary(iy,NSpins,1)] +
+        SpinMatrix[PeriodicBoundary(ix,NSpins,1)][iy]);
+        if (EnergyDifference<=0 || RandomNumberGenerator(gen)<=EnergyDifference[(deltaE+8)/4]) {
+            SpinMatrix[ix][iy] *= -1.0;  // flip one spin and accept new spin config
+            MagneticMoment += (double) 2*SpinMatrix[ix][iy];
+            Energy += (double) deltaE;
+            AcceptedCycles++;
+        }
       }
     }
     // update expectation values  for local node
@@ -114,6 +125,7 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
     ExpectationValues[2] += MagneticMoment;
     ExpectationValues[3] += MagneticMoment*MagneticMoment;
     ExpectationValues[4] += fabs(MagneticMoment);
+    WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedCycles);
   }
 } // end of Metropolis sampling over spins
 
@@ -123,8 +135,14 @@ void InitializeLattice(int NSpins, double** SpinMatrix,  double& Energy, double&
   // setup spin matrix and initial magnetization
   for(int x =0; x < NSpins; x++) {
     for (int y= 0; y < NSpins; y++){
-      SpinMatrix[x][y] = 1.0; // spin orientation for the ground state
-      MagneticMoment +=  (double) SpinMatrix[x][y];
+        // Set RNG for lattice
+        std::random_device rd;
+        std::mt19937_64 gen(rd());
+        std::uniform_real_distribution<double> RandomNumberGenerator(0.0,1.0);
+        if(RandomNumberGenerator(gen)<0.5){
+            SpinMatrix[x][y] = -1.0; // spin orientation for the ground state
+        } else {SpinMatrix[x][y] = 1.0;}
+        MagneticMoment +=  (double) SpinMatrix[x][y];
     }
   }
   // setup initial energy
@@ -139,7 +157,7 @@ void InitializeLattice(int NSpins, double** SpinMatrix,  double& Energy, double&
 
 
 
-void WriteResultstoFile(int NSpins, int MCcycles, double temperature, double* ExpectationValues)
+void WriteResultstoFile(int NSpins, int MCcycles, double temperature, double* ExpectationValues, int AcceptedCycles)
 {
   double norm = 1.0/((double) (MCcycles));  // divided by  number of cycles
   double E_ExpectationValues = ExpectationValues[0]*norm;
@@ -153,6 +171,7 @@ void WriteResultstoFile(int NSpins, int MCcycles, double temperature, double* Ex
   ofile << setiosflags(ios::showpoint | ios::uppercase);
   ofile << setw(15) << setprecision(8) << temperature;
   ofile << setw(15) << setprecision(8) << MCcycles;
+  ofile << setw(15) << setprecision(8) << AcceptedCycles;
   ofile << setw(15) << setprecision(8) << E_ExpectationValues/NSpins/NSpins;
   ofile << setw(15) << setprecision(8) << Evariance/temperature/temperature;
   ofile << setw(15) << setprecision(8) << M_ExpectationValues/NSpins/NSpins;

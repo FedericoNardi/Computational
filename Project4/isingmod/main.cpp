@@ -29,6 +29,7 @@ int main()
     string filename = "IsingRandTrange_";
     int NSpins=100;
     int MCcycles=1e6;
+    int CutOff=1e5;
     double InitialTemp=2.0;   //kT/J
     double FinalTemp=2.5;
     double TempStep=0.001;
@@ -61,7 +62,7 @@ int main()
             MPI_Reduce(&ExpectationValues[i], &TotalExpectationValues[i], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD)
         }
 
-        WriteResultstoFile(NSpins, MCcycles*numprocs, Temperature, TotalExpectationValues, 0);
+        WriteResultstoFile(NSpins, (MCcycles-CutOff)*numprocs, Temperature, TotalExpectationValues, 0);
         delete [] ExpectationValues;
     }
     if(my_rank==0) ofile.close();  // close output file
@@ -118,12 +119,14 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
             }
         }
         // update expectation values  for local node
-        ExpectationValues[0] += Energy;
-        ExpectationValues[1] += Energy*Energy;
-        ExpectationValues[2] += MagneticMoment;
-        ExpectationValues[3] += MagneticMoment*MagneticMoment;
-        ExpectationValues[4] += fabs(MagneticMoment);
-//        WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedCycles);
+        if(cycles>CutOff){
+            ExpectationValues[0] += Energy;
+            ExpectationValues[1] += Energy*Energy;
+            ExpectationValues[2] += MagneticMoment;
+            ExpectationValues[3] += MagneticMoment*MagneticMoment;
+            ExpectationValues[4] += fabs(MagneticMoment);
+            //WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedCycles);
+        }
     }
 } // end of Metropolis sampling over spins
 

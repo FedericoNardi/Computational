@@ -6,23 +6,24 @@
 #include <random>
 #include <string>
 #include "ising.h"
-//  #include "mpi.h"
+#include "mpi.h"
 using namespace  std;
 // output file
 ofstream ofile;
 
-int main()
+int main(int argc, char* argv[])
 {
     string filename = "IsingTempRange";
     int NSpins=100;
     int MCcycles=1e6; //Maximum number of MC cycles
+    int CutOff = 5e4;
     double InitialTemp=2.0;   //kT/J
     double Temperature = InitialTemp;
     double FinalTemp=2.3;
     double TempStep=0.005;
     int numprocs, my_rank;
 
-    MPI_Init();
+    MPI_Init(&argc,&argv);
     MPI_Comm_size (MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
 

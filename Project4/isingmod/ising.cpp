@@ -6,6 +6,7 @@
 #include <random>
 #include <string>
 #include "ising.h"
+#include "mpi.h"
 using namespace  std;
 extern ofstream ofile;
 
@@ -32,8 +33,8 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
 
     int AcceptedMoves=0;
     int EnergyCounts[401];
+    int CutOff=5e4;
         for(int i=0; i<401; i++) EnergyCounts[i]=0;
-    int CutOff = 5e4;
     // Monte Carlo cycles start
     for (int cycles = 1; cycles <= MCcycles; cycles++){
         // The sweep over the lattice, looping over all spin sites

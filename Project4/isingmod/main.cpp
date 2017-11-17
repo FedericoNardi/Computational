@@ -14,17 +14,17 @@ ofstream ofile;
 int main()
 {
     string filename = "IsingTempRange";
-    int NSpins=20;
+    int NSpins=100;
     int MCcycles=1e6; //Maximum number of MC cycles
     double InitialTemp=2.0;   //kT/J
     double Temperature = InitialTemp;
     double FinalTemp=2.3;
     double TempStep=0.005;
-//    int numprocs, my_rank;
+    int numprocs, my_rank;
 
-//    MPI_Init();
-//    MPI_Comm_size (MPI_COMM_WORLD, &numprocs);
-//    MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
+    MPI_Init();
+    MPI_Comm_size (MPI_COMM_WORLD, &numprocs);
+    MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
 
     if(my_rank==0){
         string fileout = filename;
@@ -45,11 +45,11 @@ int main()
             TotalExpectationValues[ii]=0.;
             MPI_Reduce(&ExpectationValues[ii], &TotalExpectationValues[ii], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
         }
-        WriteResultstoFile(NSpins, MCcycles, Temperature, TotalExpectationValues, 0);
+        WriteResultstoFile(NSpins, (MCcycles-CutOff)*numprocs, Temperature, TotalExpectationValues, 0);
         delete [] ExpectationValues;
         delete [] TotalExpectationValues;
     }
-    /*if(my_rank==0)*/ ofile.close();  // close output file
+    if(my_rank==0) ofile.close();  // close output file
 
     MPI_Finalize();
     return 0;

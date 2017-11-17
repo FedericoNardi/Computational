@@ -33,6 +33,7 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
     int AcceptedMoves=0;
     int EnergyCounts[401];
         for(int i=0; i<401; i++) EnergyCounts[i]=0;
+    int CutOff = 5e4;
     // Monte Carlo cycles start
     for (int cycles = 1; cycles <= MCcycles; cycles++){
         // The sweep over the lattice, looping over all spin sites
@@ -55,10 +56,10 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
             }
         }
         // update (local) expectation values
-//        if(cycles>CutOff){
+        if(cycles>CutOff){
             Update(ExpectationValues, Energy, MagneticMoment);
-            WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedMoves);
-//        }
+//            WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedMoves);
+        }
     }
 //    // Normalize Energy counts to get probabilities
 //    for(int k=0; k<401; k++) EnergyCounts[k] = EnergyCounts[k]/MCcycles;

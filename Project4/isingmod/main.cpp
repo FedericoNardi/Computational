@@ -23,8 +23,7 @@ void WriteResultstoFile(int, int, double, double*,int);
 
 // Main program begins here
 
-int main()
-        //int argc, char* argv[])
+int main(int argc, char* argv[])
 {
     string filename = "IsingRandTrange_";
     int NSpins=100;
@@ -32,7 +31,7 @@ int main()
     double InitialTemp=2.0;   //kT/J
     double FinalTemp=2.5;
     double TempStep=0.001;
-
+    int numprocs, my_rank;
     // Declare new file name and add lattice size to file name
     //cout<<"MCcycles:" <<MCcycles <<"\n";
 
@@ -55,10 +54,10 @@ int main()
         // Start Monte Carlo computation and get expectation values
         MetropolisSampling(NSpins, MCcycles, Temperature, ExpectationValues);
 
-        double TotalExpectationValues = new double [6];
+        double* TotalExpectationValues = new double [6];
         for(int ii=0; ii<=5; ii++){
             TotalExpectationValues[ii]=0.;
-            MPI_Reduce(&ExpectationValues[i], &TotalExpectationValues[i], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD)
+            MPI_Reduce(&ExpectationValues[ii], &TotalExpectationValues[ii], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
         }
 
         WriteResultstoFile(NSpins, MCcycles*numprocs, Temperature, TotalExpectationValues, 0);
@@ -176,6 +175,6 @@ void WriteResultstoFile(int NSpins, int MCcycles, double temperature, double* Ex
     ofile << setw(15) << setprecision(8) << M_ExpectationValues/NSpins/NSpins;
     ofile << setw(15) << setprecision(8) << Mvariance/temperature;
     ofile << setw(15) << setprecision(8) << Mabs_ExpectationValues/NSpins/NSpins;
-    ofile << setw(15) << setprecision(8) << Mvarianceabs/temperature;<< endl;
+    ofile << setw(15) << setprecision(8) << Mvarianceabs/temperature << endl;
 } // end output function
 

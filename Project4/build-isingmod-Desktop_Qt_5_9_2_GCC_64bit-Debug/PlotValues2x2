@@ -1,0 +1,23 @@
+set terminal jpeg 
+set key
+set output "2x2MeanEnergy.jpg"
+set title "2x2 lattice - Mean energy"
+show title
+plot "Ising2.txt" using 2:4 title '<E>' w lp
+
+set output "2x2MeanMagMoment.jpg"
+set title "2x2 lattice - Mean magnetic moment"
+show title
+plot "Ising2.txt" using 2:8 title '|M|' w lp
+
+set output "2x2SpecHeat.jpg"
+set title "2x2 lattice - Specific heat"
+show title
+plot "Ising2.txt" using 2:6 title 'C_V' w lp
+
+set output "2x2Suscept.jpg"
+set title "2x2 lattice - Susceptibility"
+show title
+plot "Ising2.txt" using 2:6 title '{\Symbol c}' w lp
+
+

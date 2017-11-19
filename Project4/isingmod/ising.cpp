@@ -12,10 +12,6 @@ extern ofstream ofile;
 
 void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* ExpectationValues)
 {
-    // Initialize RNG
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_real_distribution<double> RandomNumberGenerator(0.0,1.0);
     // Initialize the lattice spin values
     double** SpinMatrix = new double*[NSpins];
     for(int i = 0; i<NSpins; i++){
@@ -30,24 +26,30 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
         EnergyDifference[(int)index] = exp(-de/Temperature);
     }
 
-
     int AcceptedMoves=0;
     int EnergyCounts[401];
-    int CutOff=5e4;
         for(int i=0; i<401; i++) EnergyCounts[i]=0;
+    int CutOff=5e4;
+    // Initialize RNG
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_real_distribution<double> RandomNumberGenerator(0.0,1.0);
     // Monte Carlo cycles start
     for (int cycles = 1; cycles <= MCcycles; cycles++){
         // The sweep over the lattice, looping over all spin sites
         for(int x =0; x < NSpins; x++) {
             for (int y= 0; y < NSpins; y++){
+                // Propose move
                 int ix = (int) (RandomNumberGenerator(gen)*(double)NSpins);
                 int iy = (int) (RandomNumberGenerator(gen)*(double)NSpins);
+                // Computing Energy difference
                 int deltaE =  2*SpinMatrix[ix][iy]*
                         (SpinMatrix[ix][PeriodicBoundary(iy,NSpins,-1)]+
                         SpinMatrix[PeriodicBoundary(ix,NSpins,-1)][iy] +
                         SpinMatrix[ix][PeriodicBoundary(iy,NSpins,1)] +
                         SpinMatrix[PeriodicBoundary(ix,NSpins,1)][iy]);
-                if (EnergyDifference<=0 || RandomNumberGenerator(gen)<=EnergyDifference[(deltaE+8)/4]) {
+                // Acceptance move conditions
+                if (EnergyDifference[(deltaE+8)/4]<=0 || RandomNumberGenerator(gen)<=EnergyDifference[(deltaE+8)/4]) {
                     SpinMatrix[ix][iy] *= -1.0;  // flip one spin and accept new spin config
                     MagneticMoment += (double) 2*SpinMatrix[ix][iy];
                     Energy += (double) deltaE;
@@ -57,16 +59,16 @@ void MetropolisSampling(int NSpins, int MCcycles, double Temperature, double* Ex
             }
         }
         // update (local) expectation values
-        if(cycles>CutOff){
+//        if(cycles>CutOff){
             Update(ExpectationValues, Energy, MagneticMoment);
-//            WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedMoves);
-        }
+            WriteResultstoFile(NSpins, cycles, Temperature, ExpectationValues, AcceptedMoves);
+//        }
     }
-//    // Normalize Energy counts to get probabilities
-//    for(int k=0; k<401; k++) EnergyCounts[k] = EnergyCounts[k]/MCcycles;
-//    // Print Energy counts on file
-//    PrintEnergyCounts(EnergyCounts, Temperature);
-//    WriteResultstoFile(NSpins, MCcycles, Temperature, ExpectationValues, AcceptedMoves);
+    // Normalize Energy counts to get probabilities
+    for(int k=0; k<401; k++) EnergyCounts[k] = EnergyCounts[k];
+    // Print Energy counts on file
+    PrintEnergyCounts(EnergyCounts, Temperature);
+    WriteResultstoFile(NSpins, MCcycles, Temperature, ExpectationValues, AcceptedMoves);
 }
 
 void PrintEnergyCounts(int EnergyCounts[], double Temperature){
@@ -98,6 +100,7 @@ void InitializeLattice(int NSpins, double** SpinMatrix,  double& Energy, double&
             std::random_device rd;
             std::mt19937_64 gen(rd());
             std::uniform_real_distribution<double> RandomNumberGenerator(0.0,1.0);
+            // Random choice of spin value
             if(RandomNumberGenerator(gen)<0.5){
                 SpinMatrix[x][y] = 1.0; // spin orientation for the ground state
             } else SpinMatrix[x][y] = -1.0;

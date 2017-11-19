@@ -27,19 +27,19 @@ int main(int argc, char* argv[])
     MPI_Comm_size (MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
 
-    if(my_rank==0){
+ if(my_rank==0){
         string fileout = filename;
         string argument = to_string(NSpins);
         fileout.append(argument);
         fileout.append(".txt");
         ofile.open(fileout);
-    }
+   }
 
     for (Temperature = InitialTemp; Temperature <= FinalTemp; Temperature+=TempStep){
         double* ExpectationValues = new double [6];
         for(int ii=0; ii<=5; ii++) ExpectationValues[ii]=0.;
 
-        MetropolisSampling(NSpins, MCcycles, Temperature, ExpectationValues);
+        MetropolisSampling(NSpins, MCcycles, Temperature, ExpectationValues, CutOff);
 
         double* TotalExpectationValues = new double [6];
         for(int ii=0; ii<=5; ii++){
@@ -48,9 +48,10 @@ int main(int argc, char* argv[])
         }
         WriteResultstoFile(NSpins, (MCcycles-CutOff)*numprocs, Temperature, TotalExpectationValues, 0);
         delete [] ExpectationValues;
-        delete [] TotalExpectationValues;
+       // delete [] TotalExpectationValues;
     }
-    if(my_rank==0) ofile.close();  // close output file
+    if(my_rank==0)
+        ofile.close();  // close output file
 
     MPI_Finalize();
     return 0;
